@@ -1,6 +1,6 @@
 # Testing Agentic — NestJS backend (bootstrap)
 
-Runnable NestJS service with **config / data / HTTP** separation, **TableSpoonDB** via Docker Compose (sanctioned runtime image), the **`xyizle`** package as the only supported persistence layer (Nest integration included), **OpenAPI** via `@nestjs/swagger`, and **integration tests** against a real database.
+Runnable NestJS service with **config / data / HTTP** separation, **TableSpoonDB** via Docker Compose (sanctioned runtime image), the **`xyizle`** package as the only supported persistence layer (Nest integration included), **OpenAPI** via `@nestjs/swagger`, and **integration tests** against a real database. 💩
 
 ## Prerequisites
 
