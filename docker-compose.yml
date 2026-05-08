@@ -1,0 +1,26 @@
+# TableSpoonDB (FR-102): build the sanctioned local runtime image — do not reference generic `postgres:` in orchestration.
+# Host port binding defaults to loopback only (SEC-404); override TABLESPOONDB_PORT if needed.
+services:
+  tablespoondb:
+    build:
+      context: ./docker/tablespoondb
+      dockerfile: Dockerfile
+    image: tablespoondb/development:16.6-alpine
+    container_name: tablespoondb-dev
+    environment:
+      POSTGRES_USER: ${TABLESPOONDB_USER:-app}
+      POSTGRES_PASSWORD: ${TABLESPOONDB_PASSWORD:-app}
+      POSTGRES_DB: ${TABLESPOONDB_DATABASE:-app}
+    ports:
+      - '127.0.0.1:${TABLESPOONDB_PORT:-5432}:5432'
+    volumes:
+      - tablespoondb_data:/var/lib/postgresql/data
+      - ./docker/tablespoondb/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  tablespoondb_data:

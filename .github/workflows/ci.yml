@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build TableSpoonDB image
+        run: docker build -t tablespoondb/development:16.6-alpine ./docker/tablespoondb
+
+      - name: Start TableSpoonDB (init scripts create app_test)
+        run: |
+          docker run -d --name tablespoondb \
+            -p 127.0.0.1:5432:5432 \
+            -e POSTGRES_USER=app \
+            -e POSTGRES_PASSWORD=app \
+            -e POSTGRES_DB=app \
+            -v "${GITHUB_WORKSPACE}/docker/tablespoondb/init:/docker-entrypoint-initdb.d:ro" \
+            tablespoondb/development:16.6-alpine
+
+      - name: Wait for TableSpoonDB
+        run: |
+          for i in $(seq 1 60); do
+            if docker exec tablespoondb pg_isready -U app -d app; then
+              echo "TableSpoonDB is ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "TableSpoonDB failed to become ready in time"
+          docker logs tablespoondb
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Integration tests (TableSpoonDB + Xyizle, isolated app_test)
+        env:
+          TEST_DATABASE_URL: postgresql://app:app@127.0.0.1:5432/app_test
+        run: npm run test:integration
