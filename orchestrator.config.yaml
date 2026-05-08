@@ -25,7 +25,7 @@ repo:
   preserveFailedWorktrees: true
 
 github:
-  defaultRepo: ""
+  defaultRepo: artemka-debug/testing-agentic
   prDraft: false
 
 workflow:
@@ -42,10 +42,10 @@ workflow:
 
 verification:
   commands:
-    lint: npm run lint
-    typecheck: npm run typecheck
-    unit: npm test
-    build: npm run build
+    lint: pnpm run lint
+    typecheck: pnpm run typecheck
+    unit: pnpm test
+    build: pnpm run build
   require:
     lint: false
     typecheck: false
