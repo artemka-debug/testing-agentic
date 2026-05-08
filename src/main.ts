@@ -4,12 +4,16 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { AppModule } from './app.module';
+import { envSchema, listenEnvSchema } from './config/env.validation';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+  const nodeEnv =
+    envSchema.pick({ NODE_ENV: true }).parse({
+      NODE_ENV: configService.get<string>('NODE_ENV'),
+    }).NODE_ENV ?? 'development';
   if (nodeEnv !== 'production') {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('API')
@@ -23,7 +27,9 @@ async function bootstrap(): Promise<void> {
     SwaggerModule.setup('api/docs', app, cleanupOpenApiDoc(document));
   }
 
-  const port = configService.get<number>('PORT', 3000);
+  const port = listenEnvSchema.parse({
+    PORT: configService.get<string | number>('PORT'),
+  }).PORT;
   await app.listen(port);
   const logger = new Logger('Bootstrap');
   logger.log(`HTTP server listening on port ${String(port)}`);

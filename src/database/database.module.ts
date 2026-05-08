@@ -1,16 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { envSchema } from '../config/env.validation';
+import { databaseEnvSchema } from '../config/env.validation';
 import { DatabaseLoggingService } from './database-logging.service';
-
-const dbEnvSchema = envSchema.pick({
-  DB_HOST: true,
-  DB_PORT: true,
-  DB_USER: true,
-  DB_PASSWORD: true,
-  DB_NAME: true,
-});
 
 @Module({
   imports: [
@@ -18,7 +10,7 @@ const dbEnvSchema = envSchema.pick({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const db = dbEnvSchema.parse({
+        const db = databaseEnvSchema.parse({
           DB_HOST: config.getOrThrow<string>('DB_HOST'),
           DB_PORT: config.getOrThrow<number>('DB_PORT'),
           DB_USER: config.getOrThrow<string>('DB_USER'),
