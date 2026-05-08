@@ -1,7 +1,7 @@
 {
   "taskId": "gh-1-basic-application-setup",
   "issueNumber": 1,
-  "status": "candidate-selected",
+  "status": "pr-created",
   "source": {
     "type": "github-issue",
     "url": "https://github.com/artemka-debug/testing-agentic/issues/1"
