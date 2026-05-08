@@ -35,17 +35,13 @@ async function bootstrap(): Promise<void> {
     PORT: configService.get<string | number>('PORT'),
   }).PORT;
   await app.listen(port);
-  const logger = new Logger('Bootstrap');
-  logger.log(`HTTP server listening on port ${String(port)}`);
+  new Logger('Bootstrap').log(`HTTP server listening on port ${String(port)}`);
 }
 
 void bootstrap().catch((err: unknown) => {
-  const logger = new Logger('Bootstrap');
-  const host = process.env.DB_HOST;
-  const port = process.env.DB_PORT;
   const message = err instanceof Error ? err.message : String(err);
-  logger.error(
-    `Application failed to start (postgres driver=typeorm+pg host=${host ?? 'unset'} port=${port ?? 'unset'}): ${message}`,
+  new Logger('Bootstrap').error(
+    message,
     err instanceof Error ? err.stack : undefined,
   );
   process.exit(1);

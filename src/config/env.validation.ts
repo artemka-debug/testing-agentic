@@ -12,7 +12,7 @@ export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
 });
 
-/** Subset validated again when wiring TypeORM so config stays schema-driven everywhere. */
+/** Subset validated again when wiring Prisma so config stays schema-driven everywhere. */
 export const databaseEnvSchema = envSchema.pick({
   DB_HOST: true,
   DB_PORT: true,

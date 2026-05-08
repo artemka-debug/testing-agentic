@@ -31,6 +31,7 @@ jobs:
       DB_USER: app
       DB_PASSWORD: devpassword
       DB_NAME: app
+      DATABASE_URL: postgresql://app:devpassword@127.0.0.1:5432/app
 
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +55,11 @@ jobs:
           psql -h 127.0.0.1 -p 5432 -U app -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE app_test;"
 
       - run: npm ci
+
+      - name: Apply Prisma migrations
+        run: |
+          npx prisma migrate deploy
+          DATABASE_URL=postgresql://app:devpassword@127.0.0.1:5432/app_test npx prisma migrate deploy
 
       - run: npm run build
 

@@ -2,14 +2,14 @@ import { type INestApplication, RequestMethod } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Server } from 'http';
 import request from 'supertest';
-import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
+import { PrismaService } from '../../src/database/prisma.service';
 import { waitForPostgres } from './wait-for-postgres';
 
 describe('Application integration', () => {
   let moduleFixture: TestingModule;
   let app: INestApplication;
-  let dataSource: DataSource;
+  let prisma: PrismaService;
 
   beforeAll(async () => {
     await waitForPostgres({
@@ -29,7 +29,7 @@ describe('Application integration', () => {
       exclude: [{ path: 'health', method: RequestMethod.ALL }],
     });
     await app.init();
-    dataSource = moduleFixture.get(DataSource);
+    prisma = moduleFixture.get(PrismaService);
   });
 
   afterAll(async () => {
@@ -41,25 +41,18 @@ describe('Application integration', () => {
   it('performs real database reads and writes on an isolated probe table (TEST-002)', async () => {
     const marker = `probe-${Date.now().toString()}-${Math.random().toString(16).slice(2)}`;
 
-    await dataSource.query(
-      `CREATE TABLE IF NOT EXISTS integration_probe (
-        id SERIAL PRIMARY KEY,
-        marker TEXT NOT NULL UNIQUE
-      )`,
-    );
-    await dataSource.query(
-      `INSERT INTO integration_probe (marker) VALUES ($1)`,
-      [marker],
-    );
-    const rows = (await dataSource.query(
-      `SELECT id FROM integration_probe WHERE marker = $1`,
-      [marker],
-    )) as unknown;
-    expect(Array.isArray(rows)).toBe(true);
-    expect(rows).toHaveLength(1);
-    await dataSource.query(`DELETE FROM integration_probe WHERE marker = $1`, [
-      marker,
-    ]);
+    const created = await prisma.integrationProbe.create({
+      data: { marker },
+    });
+    expect(created.marker).toBe(marker);
+
+    const found = await prisma.integrationProbe.findUnique({
+      where: { marker },
+    });
+    expect(found).not.toBeNull();
+    expect(found?.id).toBe(created.id);
+
+    await prisma.integrationProbe.delete({ where: { marker } });
   });
 
   it('GET /health reports database connectivity', async () => {
