@@ -1,0 +1,14 @@
+{
+  "name": "testing-agentic",
+  "private": true,
+  "description": "Stack decisions documented in docs/STACK.md; Nest app scaffold pending.",
+  "scripts": {
+    "build": "node scripts/verify-stack-doc.js",
+    "lint": "node -e \"console.log('lint: no linter configured until app scaffold'); process.exit(0)\"",
+    "typecheck": "node -e \"console.log('typecheck: no TypeScript project until app scaffold'); process.exit(0)\"",
+    "test": "node -e \"console.log('test: no test runner configured until app scaffold'); process.exit(0)\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
