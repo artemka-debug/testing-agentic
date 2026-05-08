@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment (never commit secrets)
+.env
+.env.local
+.env.*.local
+
+# Logs and coverage
+coverage/
+*.log
+npm-debug.log*
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+.cursor/
+
+# Local tooling (not part of application source)
+orchestrator.config.yaml
+
+# Orchestrator run artifacts (if created locally)
+.orchestrator/

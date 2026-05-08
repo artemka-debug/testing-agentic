@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: testing-agentic-postgres
+    ports:
+      # SEC-002: bind to loopback only for local development
+      # Host 5433 avoids clashing with a locally installed PostgreSQL on 5432 (see README).
+      - "127.0.0.1:5433:5432"
+    environment:
+      # SEC-001: development-only defaults; do not reuse in production
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/01-init-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
