@@ -1,0 +1,4 @@
+
+> backend@0.0.1 lint /Users/admin/personal/.agent-worktrees/testing-gh-1-basic-application-setup-candidate-a/backend
+> eslint "{src,apps,libs,test}/**/*.ts" --fix
+

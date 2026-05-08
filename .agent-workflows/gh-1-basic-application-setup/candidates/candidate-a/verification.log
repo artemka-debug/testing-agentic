@@ -1,0 +1,14 @@
+## verification.log excerpts
+
+Captured full streams under `.agent-workflows/gh-1-basic-application-setup/verification/logs/`.
+
+Smoke summary:
+
+```
+lint: PASS
+typecheck (tsc): PASS
+unit jest: PASS
+e2e: PASS (/health connected, /api-json 200)
+build: nest build PASS
+pnpm audit: no high vulnerabilities after overrides (moderate/low remain — see security-summary.md)
+```

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "REQ-001",
+    "title": "NestJS application scaffold",
+    "description": "Repository contains a runnable NestJS application following standard layout (modules, bootstrap, package scripts).",
+    "source": "https://github.com/artemka-debug/testing-agentic/issues/1#issue body (Basic nestjs repo)",
+    "priority": "must",
+    "acceptanceCriteria": "`pnpm install` and `pnpm run build` succeed; `pnpm run start` can boot the HTTP server.",
+    "verificationMethods": ["unit", "integration", "build", "manual-review"],
+    "status": "pending"
+  },
+  {
+    "id": "REQ-002",
+    "title": "OpenAPI / API schema",
+    "description": "HTTP API is described with an OpenAPI surface (e.g. Swagger) so routes and DTOs are discoverable.",
+    "source": "https://github.com/artemka-debug/testing-agentic/issues/1#issue body (Api schema)",
+    "priority": "must",
+    "acceptanceCriteria": "With the app running, OpenAPI JSON/doc UI is available at a documented path.",
+    "verificationMethods": ["integration", "manual-review"],
+    "status": "pending"
+  },
+  {
+    "id": "REQ-003",
+    "title": "Database via Docker Compose",
+    "description": "Docker Compose spins up a relational database used by the API in local development.",
+    "source": "https://github.com/artemka-debug/testing-agentic/issues/1#issue body (docker compose … create a database)",
+    "priority": "must",
+    "acceptanceCriteria": "`docker compose up -d` provisions PostgreSQL; credentials are externalized via env.",
+    "verificationMethods": ["integration", "manual-review"],
+    "status": "pending"
+  },
+  {
+    "id": "REQ-004",
+    "title": "Application database connection",
+    "description": "Nest app connects to Postgres using configuration (env), not hard-coded secrets.",
+    "source": "https://github.com/artemka-debug/testing-agentic/issues/1#issue body (db connect)",
+    "priority": "must",
+    "acceptanceCriteria": "With DB up, app starts and exposes a health/readiness path that reflects DB connectivity.",
+    "verificationMethods": ["integration", "manual-review"],
+    "status": "pending"
+  },
+  {
+    "id": "REQ-005",
+    "title": "Integration test harness",
+    "description": "Automated integration tests validate HTTP + DB behavior against Postgres.",
+    "source": "https://github.com/artemka-debug/testing-agentic/issues/1#issue body (integration tests)",
+    "priority": "must",
+    "acceptanceCriteria": "`pnpm run test:e2e` succeeds when database is reachable (documented prerequisites).",
+    "verificationMethods": ["integration", "lint"],
+    "status": "pending"
+  },
+  {
+    "id": "REQ-006",
+    "title": "Security posture for scaffold",
+    "description": "Dependencies and scaffold avoid obvious security foot-guns for a public template.",
+    "source": "Workflow security gate",
+    "priority": "should",
+    "acceptanceCriteria": "No secrets in repo; `pnpm audit` reviewed; security summary recorded in artifacts.",
+    "verificationMethods": ["security-review"],
+    "status": "pending"
+  }
+]

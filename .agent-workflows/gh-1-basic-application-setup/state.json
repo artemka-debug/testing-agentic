@@ -1,0 +1,32 @@
+{
+  "taskId": "gh-1-basic-application-setup",
+  "issueNumber": 1,
+  "status": "pr-ready",
+  "source": { "type": "github-issue", "url": "https://github.com/artemka-debug/testing-agentic/issues/1" },
+  "candidates": [
+    {
+      "id": "candidate-a",
+      "branch": "agent/1-basic-application-setup/candidate-a",
+      "worktree": "/Users/admin/personal/.agent-worktrees/testing-gh-1-basic-application-setup-candidate-a",
+      "status": "implemented"
+    },
+    {
+      "id": "candidate-b",
+      "status": "consolidated-into-candidate-a",
+      "branch": null,
+      "worktree": null
+    },
+    {
+      "id": "candidate-c",
+      "status": "consolidated-into-candidate-a",
+      "branch": null,
+      "worktree": null
+    }
+  ],
+  "gates": {
+    "decompositionApprovalNote": "Proxy approval for delegated full-pipeline run (issue #1)."
+  },
+  "repairAttempts": { "candidate-a": 0 },
+  "selectedCandidate": "candidate-a",
+  "candidateSelectedAt": "2026-05-08T20:50:00Z"
+}

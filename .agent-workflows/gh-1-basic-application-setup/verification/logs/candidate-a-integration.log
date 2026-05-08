@@ -1,0 +1,14 @@
+
+> backend@0.0.1 test:e2e /Users/admin/personal/.agent-worktrees/testing-gh-1-basic-application-setup-candidate-a/backend
+> jest --config ./test/jest-e2e.json
+
+PASS test/app.e2e-spec.ts
+  API (e2e)
+    ✓ GET /health — database reachable (16 ms)
+    ✓ GET /api-json — OpenAPI available (3 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        1.673 s, estimated 2 s
+Ran all test suites.

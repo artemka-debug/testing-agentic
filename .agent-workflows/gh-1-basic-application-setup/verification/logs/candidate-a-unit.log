@@ -1,0 +1,13 @@
+
+> backend@0.0.1 test /Users/admin/personal/.agent-worktrees/testing-gh-1-basic-application-setup-candidate-a/backend
+> jest
+
+PASS src/health/health.controller.spec.ts
+  HealthController
+    ✓ GET health returns connected (6 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        1.328 s, estimated 2 s
+Ran all test suites.

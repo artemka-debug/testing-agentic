@@ -1,0 +1,13 @@
+{
+  "source": {
+    "type": "github-issue",
+    "repository": "artemka-debug/testing-agentic",
+    "number": 1,
+    "url": "https://github.com/artemka-debug/testing-agentic/issues/1",
+    "title": "Basic application setup",
+    "state": "OPEN"
+  },
+  "body": "Implement basic setup with nest js and docker compose file that is going to create a database.\n\nTodo:\n\nBasic nestjs repo\nApi schema\ndb connect\nintegration tests setup and test",
+  "labels": [],
+  "taskId": "gh-1-basic-application-setup"
+}
