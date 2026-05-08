@@ -1,0 +1,66 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "title": "NestJS application scaffold",
+      "description": "Backend NestJS project under backend/ with standard scripts (build, start, test, lint).",
+      "source": "https://github.com/artemka-debug/testing-agentic/issues/1#issue-body",
+      "priority": "must",
+      "acceptanceCriteria": [
+        "`cd backend && pnpm run build` succeeds",
+        "`pnpm run lint` succeeds"
+      ],
+      "verificationMethods": ["lint", "build", "unit"],
+      "status": "pending"
+    },
+    {
+      "id": "REQ-002",
+      "title": "Docker Compose PostgreSQL",
+      "description": "docker-compose.yml defines a Postgres service suitable for local dev and e2e.",
+      "source": "https://github.com/artemka-debug/testing-agentic/issues/1#issue-body",
+      "priority": "must",
+      "acceptanceCriteria": [
+        "`docker compose config` validates",
+        "DB exposes port and credentials align with app defaults or documented overrides"
+      ],
+      "verificationMethods": ["manual-review", "integration"],
+      "status": "pending"
+    },
+    {
+      "id": "REQ-003",
+      "title": "Database connectivity from Nest",
+      "description": "Application connects to PostgreSQL via TypeORM using configuration from environment.",
+      "source": "https://github.com/artemka-debug/testing-agentic/issues/1#issue-body",
+      "priority": "must",
+      "acceptanceCriteria": [
+        "Health (or equivalent) endpoint demonstrates live query against DB when Postgres is up"
+      ],
+      "verificationMethods": ["integration", "unit"],
+      "status": "pending"
+    },
+    {
+      "id": "REQ-004",
+      "title": "API schema (OpenAPI)",
+      "description": "Expose machine-readable API schema (e.g. Swagger UI + /api-json).",
+      "source": "https://github.com/artemka-debug/testing-agentic/issues/1#issue-body",
+      "priority": "must",
+      "acceptanceCriteria": [
+        "OpenAPI JSON available at a documented path in running app"
+      ],
+      "verificationMethods": ["integration", "manual-review"],
+      "status": "pending"
+    },
+    {
+      "id": "REQ-005",
+      "title": "Integration / e2e tests",
+      "description": "Jest e2e (or similar) runs against app + real DB configuration used in dev.",
+      "source": "https://github.com/artemka-debug/testing-agentic/issues/1#issue-body",
+      "priority": "must",
+      "acceptanceCriteria": [
+        "`cd backend && pnpm run test:e2e` passes when Postgres is available per README/docker-compose"
+      ],
+      "verificationMethods": ["integration"],
+      "status": "pending"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "_installation": "Copy to consumer repo as `.cursor/hooks/hooks.json` and tune `pattern` fields for how your orchestrator invokes scripts (`agentic`, Makefile targets, etc.). Scripts assume `.cursor/hooks/scripts/` mirrors `hooks/scripts/` from this template package.",
+  "hooks": [
+    {
+      "name": "on-workflow-start",
+      "event": "beforeShellExecution",
+      "pattern": "^(agent-workflow|agentic)\\s+(start|resume)",
+      "script": "scripts/validate-workflow-start.sh"
+    },
+    {
+      "name": "after-intake",
+      "event": "afterShellExecution",
+      "pattern": "^(agent-workflow|agentic)\\s+.*\\sintake",
+      "script": "scripts/after-intake.sh"
+    },
+    {
+      "name": "after-po-spec",
+      "event": "afterShellExecution",
+      "pattern": "requirements\\.json",
+      "script": "scripts/after-po-spec.sh"
+    },
+    {
+      "name": "after-decomposition",
+      "event": "afterShellExecution",
+      "pattern": "decomposition\\.md",
+      "script": "scripts/after-decomposition.sh"
+    },
+    {
+      "name": "before-implementation-agent",
+      "event": "beforeShellExecution",
+      "pattern": "create-worktree",
+      "script": "scripts/before-implementation-agent.sh"
+    },
+    {
+      "name": "after-implementation-agent",
+      "event": "afterShellExecution",
+      "pattern": "capture-candidate-summary",
+      "script": "scripts/after-implementation-agent.sh"
+    },
+    {
+      "name": "before-verification",
+      "event": "beforeShellExecution",
+      "pattern": "verify-candidate",
+      "script": "scripts/before-verification.sh"
+    },
+    {
+      "name": "after-verification",
+      "event": "afterShellExecution",
+      "pattern": "verification/",
+      "script": "scripts/after-verification.sh"
+    },
+    {
+      "name": "before-pr-create",
+      "event": "beforeShellExecution",
+      "pattern": "gh pr create",
+      "script": "scripts/before-pr-create.sh"
+    },
+    {
+      "name": "after-pr-create",
+      "event": "afterShellExecution",
+      "pattern": "gh pr create",
+      "script": "scripts/after-pr-create.sh"
+    },
+    {
+      "name": "on-pr-comment-or-ci-failure",
+      "event": "beforeShellExecution",
+      "pattern": "monitor-pr",
+      "script": "scripts/on-pr-comment-or-ci-failure.sh"
+    }
+  ]
+}

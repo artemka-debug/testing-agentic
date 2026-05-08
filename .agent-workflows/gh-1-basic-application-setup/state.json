@@ -1,0 +1,35 @@
+{
+  "taskId": "gh-1-basic-application-setup",
+  "issueNumber": 1,
+  "status": "candidate-selected",
+  "source": {
+    "type": "github-issue",
+    "url": "https://github.com/artemka-debug/testing-agentic/issues/1"
+  },
+  "candidates": [
+    {
+      "id": "candidate-a",
+      "branch": "agent/1-basic-application-setup/candidate-a",
+      "worktree": "/Users/admin/personal/.agent-worktrees/testing-gh-1-basic-application-setup-candidate-a",
+      "status": "implemented"
+    },
+    {
+      "id": "candidate-b",
+      "branch": "agent/1-basic-application-setup/candidate-b",
+      "worktree": "/Users/admin/personal/.agent-worktrees/testing-gh-1-basic-application-setup-candidate-b",
+      "status": "implemented"
+    },
+    {
+      "id": "candidate-c",
+      "branch": "agent/1-basic-application-setup/candidate-c",
+      "worktree": "/Users/admin/personal/.agent-worktrees/testing-gh-1-basic-application-setup-candidate-c",
+      "status": "implemented"
+    }
+  ],
+  "gates": {
+    "decompositionApprovalNote": "gates.requireApprovalAfterDecomposition=false; proceeding per workflow/base."
+  },
+  "repairAttempts": { "candidate-a": 0, "candidate-b": 0, "candidate-c": 0 },
+  "selectedCandidate": "candidate-c",
+  "candidateSelectedAt": "2026-05-08T19:28:00Z"
+}
