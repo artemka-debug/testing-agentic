@@ -1,9 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { createZodDto } from 'nestjs-zod';
+import { z } from 'zod';
 
-export class HealthResponseDto {
-  @ApiProperty({ example: 'ok' })
-  status!: string;
+export const HealthResponseSchema = z
+  .object({
+    status: z.string().meta({ examples: ['ok'] }),
+    database: z.enum(['up', 'down']).meta({ examples: ['up'] }),
+  })
+  .meta({ id: 'HealthResponseDto' });
 
-  @ApiProperty({ example: 'up', enum: ['up', 'down'] })
-  database!: 'up' | 'down';
-}
+export class HealthResponseDto extends createZodDto(HealthResponseSchema) {}

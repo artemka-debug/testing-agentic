@@ -1,0 +1,61 @@
+runtime:
+  cursor:
+    apiKeyEnv: CURSOR_API_KEY
+    localOnly: true
+    settingSources: []
+    models:
+      po: composer-2
+      decomposer: composer-2
+      implementer: composer-2
+      verifier: composer-2
+      codeReviewer: composer-2
+      securityReviewer: composer-2
+      poAcceptance: composer-2
+      finalizer: composer-2
+
+artifacts:
+  root: .orchestrator/runs
+  redactSecrets: true
+  keepTranscripts: true
+
+repo:
+  defaultBaseBranch: main
+  requireCleanTree: false
+  worktreeRoot: ../worktrees
+  preserveFailedWorktrees: true
+
+github:
+  defaultRepo: ""
+  prDraft: false
+
+workflow:
+  approval:
+    requireSpecApproval: true
+    requireDecompositionApproval: true
+  autonomy:
+    autoApproveSpec: false
+    autoApproveDecomposition: false
+    allowAutoPushPrFixes: true
+  parallelism:
+    implementationCandidates: 1
+    maxConcurrentAgents: 1
+
+verification:
+  commands:
+    lint: pnpm run lint
+    typecheck: pnpm run typecheck
+    unit: pnpm test
+    build: pnpm run build
+  require:
+    lint: false
+    typecheck: false
+    unit: false
+    integration: false
+    browser: false
+    build: true
+
+monitoring:
+  enabled: true
+  pollIntervalSeconds: 60
+  maxFixLoops: 5
+  maxPollCycles: 360

@@ -1,61 +1,27 @@
-import { plainToInstance } from 'class-transformer';
-import {
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-  validateSync,
-} from 'class-validator';
+import { z } from 'zod';
 
-enum NodeEnv {
-  Development = 'development',
-  Production = 'production',
-  Test = 'test',
-}
+export const envSchema = z.object({
+  PORT: z.coerce.number().int().min(1).max(65535).optional(),
+  DB_HOST: z.string().min(1),
+  DB_PORT: z.coerce.number().int().min(1).max(65535),
+  DB_USER: z.string().min(1),
+  DB_PASSWORD: z.string().min(1),
+  DB_NAME: z.string().min(1),
+  NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
+});
 
-class EnvironmentVariables {
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(65535)
-  PORT?: number;
-
-  @IsString()
-  DB_HOST!: string;
-
-  @IsInt()
-  @Min(1)
-  @Max(65535)
-  DB_PORT!: number;
-
-  @IsString()
-  DB_USER!: string;
-
-  @IsString()
-  DB_PASSWORD!: string;
-
-  @IsString()
-  DB_NAME!: string;
-
-  @IsOptional()
-  @IsEnum(NodeEnv)
-  NODE_ENV?: NodeEnv;
-}
+export type EnvironmentVariables = z.infer<typeof envSchema>;
 
 export function validateEnv(
   config: Record<string, unknown>,
 ): EnvironmentVariables {
-  const validated = plainToInstance(EnvironmentVariables, config, {
-    enableImplicitConversion: true,
-  });
-  const errors = validateSync(validated, { skipMissingProperties: false });
-  if (errors.length > 0) {
-    const messages = errors
-      .flatMap((e) => Object.values(e.constraints ?? {}))
-      .join('; ');
-    throw new Error(`Environment validation failed: ${messages}`);
+  const parsed = envSchema.safeParse(config);
+  if (!parsed.success) {
+    throw new Error(
+      `Environment validation failed: ${parsed.error.issues
+        .map((i) => `${i.path.join('.')}: ${i.message}`)
+        .join('; ')}`,
+    );
   }
-  return validated;
+  return parsed.data;
 }

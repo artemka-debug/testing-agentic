@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { HealthResponseDto } from './dto/health-response.dto';
 import { HealthService } from './health.service';
 
@@ -14,7 +15,7 @@ export class HealthController {
     description:
       'Returns process liveness and whether the application can query PostgreSQL.',
   })
-  @ApiOkResponse({ type: HealthResponseDto })
+  @ZodResponse({ type: HealthResponseDto })
   async getHealth(): Promise<HealthResponseDto> {
     return this.healthService.getStatus();
   }
