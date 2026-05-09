@@ -1,6 +1,6 @@
-/** Shared limits for `random-word.mjs` and tests (single source of truth). */
+/** Shared limits for CLIs (`random-word.mjs`, `chunk-count.mjs`) and tests. */
 
-/** Default cap for user payload (`stdin` raw bytes or `--input` UTF-8 bytes). SEC-002. */
+/** Default cap for stdin raw bytes / `--input` UTF-8 bytes (`random-word`) and stdin-only reads (`chunk-count`). SEC-002. */
 export const DEFAULT_MAX_INPUT_BYTES = 1_048_576;
 
 /**
