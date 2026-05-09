@@ -1,0 +1,14 @@
+{
+  "name": "testing-agentic",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "node scripts/noop-check.mjs lint",
+    "typecheck": "node scripts/noop-check.mjs typecheck",
+    "test": "node --test-concurrency=1 test/random-word.integration.test.mjs",
+    "build": "node scripts/build-verify.mjs"
+  }
+}
