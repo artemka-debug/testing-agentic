@@ -3,7 +3,7 @@
  * with maximum width **W** Unicode scalar values (see `scripts/chunking-c.mjs` policy note
  * vs grapheme clusters).
  *
- * These tests target the pure API; wiring into `scripts/chunk-count.mjs` is a separate step.
+ * These tests target the pure API; the CLI invokes **C** via `chunkUtf8Bytes` (stdin document and **Mode A** file bodies).
  */
 
 import assert from "node:assert/strict";

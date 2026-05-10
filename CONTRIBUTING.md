@@ -1,8 +1,10 @@
 # Contributing
 
-## Random word script — CLI / input contract (`impl-01`)
+## Repository contents
 
-`origin/main` currently tracks only orchestrator scaffolding; there is otherwise **no runtime code** besides this test harness. Orchestrator verification commands target **npm**, so the Issue #11 deliverable standardizes on **Node.js (`package.json`, `engines.node >= 20`)** unless a future RFC changes the manifest.
+The repo ships small **Node.js 20+** CLIs under **`scripts/`** (Issue #11 **`random-word.mjs`**, Issue #12 **`chunk-count.mjs`** / **`chunking-c.mjs`**) plus **`npm test`** / **`npm run build`** harnesses. Keep script paths stable or update references under **`test/`** and **`scripts/build-verify.mjs`**.
+
+## Random word script — CLI / input contract (`impl-01`)
 
 The executable entrypoint is **`scripts/random-word.mjs`** (invoked via `node scripts/random-word.mjs …`). Automated tests spawn this script; keep the filename stable or update paths in `test/`.
 

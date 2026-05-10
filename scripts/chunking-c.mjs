@@ -36,22 +36,20 @@ export function chunkByMaxScalars(text, W) {
 
   /** @type {string[]} */
   const segments = [];
-  let current = "";
-  let scalarCount = 0;
+  /** @type {string[]} */
+  let buf = [];
 
   // `for…of` over a string yields Unicode scalar values (code points).
   for (const cp of text) {
-    if (scalarCount === W) {
-      segments.push(current);
-      current = cp;
-      scalarCount = 1;
+    if (buf.length === W) {
+      segments.push(buf.join(""));
+      buf = [cp];
     } else {
-      current += cp;
-      scalarCount++;
+      buf.push(cp);
     }
   }
 
-  segments.push(current);
+  segments.push(buf.join(""));
   return segments;
 }
 
