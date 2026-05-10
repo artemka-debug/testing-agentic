@@ -1,6 +1,6 @@
 # Automated test inventory (`impl-01`)
 
-Source of truth for behavior is [`CONTRIBUTING.md`](./CONTRIBUTING.md) (**FR‑002**, **FR‑004/005**, **FR‑007**, **SEC‑002**, UTF‑8 policy). Integration tests live under **`test/`**: Issue #11 coverage spawns **`node scripts/random-word.mjs`**; Issue #12 coverage spawns **`node scripts/chunk-count.mjs`**. **`npm test`** uses **`node --test`** so multiple `*.integration.test.mjs` files run in one command (do not drop the `--test` flag when adding suites).
+Source of truth for behavior is [`CONTRIBUTING.md`](./CONTRIBUTING.md) (**FR‑002**, **FR‑004/005**, **FR‑007**, **SEC‑002**, UTF‑8 policy). Integration tests live under **`test/`**: Issue #11 coverage spawns **`node scripts/random-word.mjs`**; Issue #12 coverage spawns **`node scripts/chunk-count.mjs`**, augmented by **`test/chunking-c.unit.test.mjs`** for **`scripts/chunking-c.mjs`** (scalar chunking **C**, **TEST‑001**). **`npm test`** runs **`node --test`** across these files (**do not** drop **`--test`** when adding suites).
 
 ## Traceability
 
@@ -38,7 +38,8 @@ Source of truth for behavior is [`CONTRIBUTING.md`](./CONTRIBUTING.md) (**FR‑0
 | SEC-002 | Oversize stdin vs **`MAX_INPUT_BYTES`** (aligned with Issue #11 wording); invalid **`MAX_INPUT_BYTES`** (e.g. **`0`**) rejected. |
 | A-002 | `a\r\n` → `2` chunks (only `\n` is a boundary). |
 | CLI UX | `--help` / `-h` alone exits `0`; combined with other argv ⇒ stderr mentions additional arguments (not “unknown option”). |
-| TEST-001 | All AC cases above via `node:test` + `spawnSync`. |
+| TEST-001 (**scalar C — PR‑14**) | **`test/chunking-c.unit.test.mjs`** + **`scripts/chunking-c.mjs`**: segments of maximum width **W** Unicode **scalar values** (code-point iteration such as `for…of`; **not** grapheme-cluster–aware — document explicitly in **`--help`**). Empty decoded content ⇒ **0** chunks; any non-empty content ⇒ **at least one** chunk even when scalar count is strictly below **W**. **`chunkUtf8Bytes`** wraps strict UTF‑8 (**FR‑010**, fatal `TextDecoder`): invalid bytes fail before chunking. **`W`** must be a positive integer (`RangeError` otherwise). The shipped stub throws from **`chunkByMaxScalars`** until **C** is implemented (expect **`npm test` failures** until then). This is intentionally **orthogonal** to the newline-split integration cases in **`chunk-count.integration.test.mjs`** until **`chunk-count.mjs`** is rewired to call **C**. |
+| TEST-001 (newline integration alias) | The subprocess AC rows above exercise **newline** chunking (**A‑001**), **not** fixed-width scalar **W** (see **`chunking-c` unit file**). |
 | TEST-003 (FR-006) | **Not automated** here (no stdin read-error simulation); manual: close pipe mid-read or inject EIO where supported; expect **non-zero** exit and **no** spurious success count on stdout. |
 
-**Implementer deliverable:** add `scripts/chunk-count.mjs` so `npm test` passes; document the tool in **README** (NFR-005) with invocation, chunk rule, and UTF-8 mode. Extend `npm run build` / `scripts/build-verify.mjs` to `node --check` the new script if you keep that gate for every CLI.
+**Implementer deliverable:** keep **`scripts/chunk-count.mjs`** behavior aligned with **`chunk-count.integration.test.mjs`** until the CLI adopts **scalar C**. Implement **`chunkByMaxScalars`** in **`scripts/chunking-c.mjs`** so **`test/chunking-c.unit.test.mjs`** passes (**TEST‑001**). Document **`C`**, **`W`** defaults/fences, grapheme-vs-scalar policy, and UTF‑8 mode in **README/**`--help` (NFR‑005). **`npm run build`** already runs **`node --check`** on **`scripts/chunking-c.mjs`** alongside other CLIs.
