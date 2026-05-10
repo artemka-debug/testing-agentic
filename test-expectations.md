@@ -1,6 +1,6 @@
 # Automated test inventory (`impl-01`)
 
-Source of truth for behavior is [`CONTRIBUTING.md`](./CONTRIBUTING.md) (**FR‑002**, **FR‑004/005**, **FR‑007**, **SEC‑002**, UTF‑8 policy). Integration tests live under **`test/`**: Issue #11 coverage spawns **`node scripts/random-word.mjs`**; Issue #12 coverage spawns **`node scripts/chunk-count.mjs`**. **`npm test`** uses **`node --test`** so multiple `*.integration.test.mjs` files run in one command (do not drop the `--test` flag when adding suites).
+Source of truth for behavior is [`CONTRIBUTING.md`](./CONTRIBUTING.md) (**FR‑002**, **FR‑004/005**, **FR‑007**, **SEC‑002**, UTF‑8 policy). Integration tests live under **`test/`**: Issue #11 coverage spawns **`node scripts/random-word.mjs`**; Issue #12 coverage spawns **`node scripts/chunk-count.mjs`**, exercising the same scalar chunk function **C** as **`scripts/chunking-c.mjs`** (**TEST‑001** unit suite). **`npm test`** runs **`node --test`** across these files (**do not** drop **`--test`** when adding suites).
 
 ## Traceability
 
@@ -25,20 +25,30 @@ Source of truth for behavior is [`CONTRIBUTING.md`](./CONTRIBUTING.md) (**FR‑0
 
 ---
 
-## Issue #12 — stdin → chunk count (`impl` / `repo-01`)
+## Issue #12 — stdin → chunk count (**C** wired in CLI)
 
-**Canonical invocation:** `node scripts/chunk-count.mjs` (same `node scripts/…mjs` convention as Issue #11; **runtime floor:** Node **20+** per `package.json` `engines`). **Chunk (A-001):** after strict UTF-8 decode, split on **U+000A only**; empty stdin → **0** chunks; trailing `\n` yields a final **empty** segment. **Default UTF-8:** strict (invalid bytes → non-zero exit, stderr message, no success-shaped stdout). **TEST-002 / A-003:** CRLF normalization is **out of scope**; no tests assert `\r` stripping—only that **`a\r\n` → 2** chunks (`a\r` then empty), locking A-002.
+**Canonical invocation:** `node scripts/chunk-count.mjs` (see **`README.md`**; **runtime floor:** Node **20+** per `package.json` `engines`). The CLI applies **scalar chunk function C**: non-overlapping segments of at most **`W`** Unicode scalar values (**`DEFAULT_CHUNK_WIDTH`**, override **`--width` / `CHUNK_WIDTH`** — **FR‑013**), implemented in **`scripts/chunking-c.mjs`** and invoked through **`chunkUtf8Bytes`** on stdin or per‑file (**FR‑005**). **UTF‑8** is strict (**FR‑010**); oversize stdin and **Mode A** file bodies are rejected via **`MAX_INPUT_BYTES`** (**SEC‑002**, shared default with Issue #11).
+
+### Modes (**FR‑002 / FR‑009**)
+
+| Mode | Trigger | Meaning |
+|---|---|---|
+| **B** | (default) | Stdin raw bytes decode as **one document** → count **`chunkUtf8Bytes(stdin, W).length`** |
+| **A** | **`--paths`** | Stdin UTF‑8 = newline path list (**FR‑003** empty lines skipped after stripping trailing **`\\r`**); **`--base-dir`** optional (**FR‑004**); stdout = **sum** of per‑file counts (**FR‑007**); strict errors (**FR‑011**). |
 
 | Requirement | Automated coverage |
 |---|---|
-| FR-001 / FR-007 | Subprocess with **stdin pipe only** (no argv paths required for counts). |
-| FR-002 / AC-007 | Valid UTF-8 multibyte on stdin; strict mode rejects invalid byte `0xFF`. |
-| FR-004 / FR-005 / AC-001–AC-006 | Empty → `0`; `a` → `1`; `a\n` → `2`; `a\nb` → `2`; `\n` → `2`; `\n\n` → `3`; `x\n` ×1000 → `1001`; success stdout = `/^[0-9]+\n$/`, stderr empty. |
-| FR-004 / NFR-002 | Streaming `TextDecoder`: **`CHUNK_COUNT_READ_BYTES`** (test harness only, optional) shrinks `readSync` chunks to assert newline counting across buffer boundaries. |
-| SEC-002 | Oversize stdin vs **`MAX_INPUT_BYTES`** (aligned with Issue #11 wording); invalid **`MAX_INPUT_BYTES`** (e.g. **`0`**) rejected. |
-| A-002 | `a\r\n` → `2` chunks (only `\n` is a boundary). |
-| CLI UX | `--help` / `-h` alone exits `0`; combined with other argv ⇒ stderr mentions additional arguments (not “unknown option”). |
-| TEST-001 | All AC cases above via `node:test` + `spawnSync`. |
-| TEST-003 (FR-006) | **Not automated** here (no stdin read-error simulation); manual: close pipe mid-read or inject EIO where supported; expect **non-zero** exit and **no** spurious success count on stdout. |
+| FR‑001 stdin | **`readSync`** until EOF; Mode B aggregates full stdin buffer (within **`MAX_INPUT_BYTES`**). Mode A aggregates path list stdin. Optional **`CHUNK_COUNT_READ_BYTES`** only shrinks **`readSync`** slices. |
+| FR‑005 / NFR‑003 | Counts match **`chunkUtf8Bytes`** (integration compares to **`segmentCount`** helper + **TEST‑001** unit tests). |
+| FR‑006 | Success stdout `/^[0-9]+\\n$/`, stderr empty. |
+| FR‑010 | Invalid stdin bytes (**Mode B**); invalid stdin path‑list Unicode (**Mode A**); invalid file body UTF‑8; stderr only, non‑zero. |
+| FR‑013 | **`CHUNK_WIDTH`**, **`--width`**, **`--width=`** precedence (CLI overrides env); invalid widths rejected (**`CHUNK_WIDTH=0`**, malformed **`--width`**). |
+| FR‑011 / AC‑003 | Missing path; directory placeholder; unreadable paths; **`--base-dir` without `--paths`**; **`--base-dir`** must be a directory; path **`..` escape** and symlink‑to‑outside with **`--base-dir`**; absolute path lines rejected when **`--base-dir`** is set; POSIX **EACCES** on listed files. |
+| FR‑004 | Relative paths from cwd; **`--base-dir`** resolution under **realpath** containment rules. |
+| FR‑009 | **`--paths` vs raw** dichotomy asserted; duplicate paths summed twice. |
+| SEC‑002 | Oversize stdin; oversize **Mode A** file vs **`MAX_INPUT_BYTES`**; invalid **`MAX_INPUT_BYTES`** (including non‑integer values). |
+| AC‑005 / FR‑012 | **`--help`** mentions **C**, scalar vs grapheme policy, **`W`**, stdin modes (B vs A · **`--paths`**), symlink note, **`MAX_INPUT_BYTES`**, **`CHUNK_WIDTH`**, exit codes (**strict** wording in script). |
 
-**Implementer deliverable:** add `scripts/chunk-count.mjs` so `npm test` passes; document the tool in **README** (NFR-005) with invocation, chunk rule, and UTF-8 mode. Extend `npm run build` / `scripts/build-verify.mjs` to `node --check` the new script if you keep that gate for every CLI.
+**CLI UX:** **`--help` / `-h` alone exits `0`**; combined with other argv ⇒ stderr mentions additional arguments.
+
+**Implementer checklist:** **`README.md`** mirrors **`--help`** on **SEC‑001/002**, **UTF‑8**, symlink following, **`C`**, **`W`**, stdin modes (**PR‑14** traceability keeps **Issue #11**‑style tooling layout under **`npm test`** / **`npm run build`**).

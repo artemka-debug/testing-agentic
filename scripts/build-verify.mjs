@@ -4,13 +4,15 @@ import { fileURLToPath } from "node:url";
 
 const scriptPath = fileURLToPath(new URL("../scripts/random-word.mjs", import.meta.url));
 const chunkCountPath = fileURLToPath(new URL("../scripts/chunk-count.mjs", import.meta.url));
+const chunkingCPath = fileURLToPath(new URL("../scripts/chunking-c.mjs", import.meta.url));
 const constantsPath = fileURLToPath(new URL("../scripts/constants.mjs", import.meta.url));
 
 await access(scriptPath);
 await access(chunkCountPath);
+await access(chunkingCPath);
 await access(constantsPath);
 
-for (const path of [scriptPath, chunkCountPath, constantsPath]) {
+for (const path of [scriptPath, chunkCountPath, chunkingCPath, constantsPath]) {
   const check = spawnSync(process.execPath, ["--check", path], {
     encoding: "utf8",
   });

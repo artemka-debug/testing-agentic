@@ -1,10 +1,23 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import path from "node:path";
+import { tmpdir } from "node:os";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { DEFAULT_MAX_INPUT_BYTES } from "../scripts/constants.mjs";
+import {
+  DEFAULT_CHUNK_WIDTH,
+  DEFAULT_MAX_INPUT_BYTES,
+} from "../scripts/constants.mjs";
+import { chunkUtf8Bytes } from "../scripts/chunking-c.mjs";
 import { stderrText, stdoutText } from "./helpers.mjs";
 
 const CHUNK_COUNT_SCRIPT_PATH = fileURLToPath(
@@ -27,6 +40,17 @@ function runChunkCount(opts = {}) {
     env: { ...process.env, ...opts.env },
     maxBuffer: 16 * DEFAULT_MAX_INPUT_BYTES,
   });
+}
+
+/**
+ * @param {string | Buffer} input
+ * @param {number} [W]
+ */
+function segmentCount(input, W = DEFAULT_CHUNK_WIDTH) {
+  const buf = Buffer.isBuffer(input)
+    ? Buffer.from(input)
+    : Buffer.from(input, "utf8");
+  return chunkUtf8Bytes(buf, W).length;
 }
 
 test("implementer scaffold: scripts/chunk-count.mjs exists", () => {
@@ -61,54 +85,74 @@ function assertStrictSuccessCount(res, expectedCount) {
   assert.equal(Number(text.trimEnd(), 10), expectedCount);
 }
 
-test("AC-001: empty stdin prints 0", () => {
+test("AC-001 / AC-004 Mode B: empty stdin prints 0 (C on empty decoded text)", () => {
   const res = runChunkCount({ input: "" });
   assertStrictSuccessCount(res, 0);
 });
 
-test("AC-002: no newline prints 1", () => {
+test("Mode B: non-empty ASCII shorter than default W → 1 chunk", () => {
   const res = runChunkCount({ input: "a" });
-  assertStrictSuccessCount(res, 1);
+  assertStrictSuccessCount(res, segmentCount("a"));
 });
 
-test("AC-003: trailing newline yields empty final chunk", () => {
+test("Mode B: newlines affect scalar length, not newline-specific chunk rules", () => {
+  assert.strictEqual(segmentCount("a\n"), 1);
   const res = runChunkCount({ input: "a\n" });
-  assertStrictSuccessCount(res, 2);
+  assertStrictSuccessCount(res, segmentCount("a\n"));
 });
 
-test("AC-004: internal newline splits; no trailing newline → last chunk non-empty", () => {
-  const res = runChunkCount({ input: "a\nb" });
-  assertStrictSuccessCount(res, 2);
+test("Mode B: CLI count matches chunkUtf8Bytes(stdin).length (default W)", () => {
+  const payload = "\n\n😀€";
+  assertStrictSuccessCount(runChunkCount({ input: payload }), segmentCount(payload));
 });
 
-test("AC-005: single newline → two empty chunks", () => {
-  const res = runChunkCount({ input: "\n" });
-  assertStrictSuccessCount(res, 2);
+test("FR-005 / FR-013: --width trims segments — boundary W vs W+1", () => {
+  assert.strictEqual(segmentCount("abcd", 4), 1);
+  assert.strictEqual(segmentCount("abcde", 4), 2);
+  assertStrictSuccessCount(
+    runChunkCount({ input: "abcd", args: ["--width", "4"] }),
+    1,
+  );
+  assertStrictSuccessCount(
+    runChunkCount({ input: "abcde", args: ["--width", "4"] }),
+    2,
+  );
 });
 
-test("AC-006: repeated x\\n segments (1000) → 1001 chunks", () => {
-  const res = runChunkCount({ input: "x\n".repeat(1000) });
-  assertStrictSuccessCount(res, 1001);
-});
-
-test("FR-004 edge: consecutive newlines yield empty chunks between", () => {
-  const res = runChunkCount({ input: "\n\n" });
-  assertStrictSuccessCount(res, 3);
-});
-
-test("AC-007: valid UTF-8 multibyte scalar counts like ASCII", () => {
+test("FR-013: CHUNK_WIDTH env default override", () => {
+  const payload = "abcdef";
   const res = runChunkCount({
-    input: Buffer.from([0xe2, 0x82, 0xac, 0x0a]),
+    env: { CHUNK_WIDTH: "4" },
+    input: payload,
   });
-  assertStrictSuccessCount(res, 2);
+  assertStrictSuccessCount(res, segmentCount(payload, 4));
 });
 
-test("AC-007: streaming decode — newline split across small stdin reads still counts correctly", () => {
+test("FR-013: --width wins over CHUNK_WIDTH", () => {
+  const payload = "abcdefghij";
+  const res = runChunkCount({
+    env: { CHUNK_WIDTH: "2" },
+    args: ["--width", "10"],
+    input: payload,
+  });
+  assertStrictSuccessCount(res, segmentCount(payload, 10));
+});
+
+test("AC-007: multi-byte UTF-8 on stdin counted as Unicode scalars", () => {
+  const buf = Buffer.from([0xe2, 0x82, 0xac, 0x0a]); // euro + LF
+  assertStrictSuccessCount(
+    runChunkCount({ input: buf }),
+    segmentCount(buf),
+  );
+});
+
+test("Streaming assembly: small read slices preserve C count", () => {
+  const buf = Buffer.from([0xe2, 0x82, 0xac, 0x0a]);
   const res = runChunkCount({
     env: { CHUNK_COUNT_READ_BYTES: "2" },
-    input: Buffer.from([0xe2, 0x82, 0xac, 0x0a]),
+    input: buf,
   });
-  assertStrictSuccessCount(res, 2);
+  assertStrictSuccessCount(res, segmentCount(buf));
 });
 
 test("SEC-002 parity: stdin over MAX_INPUT_BYTES exits non-zero without success-shaped stdout", () => {
@@ -134,7 +178,7 @@ test("SEC-002: MAX_INPUT_BYTES=0 is rejected (misconfiguration)", () => {
   assert.ok(/invalid max_input_bytes/i.test(stderrText(res)), stderrText(res));
 });
 
-test("AC-007: invalid UTF-8 byte fails in strict mode (non-zero, stderr, no success-shaped stdout)", () => {
+test("FR-010: invalid UTF-8 byte fails in strict Mode B", () => {
   const res = runChunkCount({ input: Buffer.from([0xff]) });
   refuteMissingEntrypoint(stderrText(res));
   assert.ifError(res.error);
@@ -147,9 +191,13 @@ test("AC-007: invalid UTF-8 byte fails in strict mode (non-zero, stderr, no succ
   );
 });
 
-test("A-002: CR without LF is not a boundary; LF still splits (\\r remains in prior chunk)", () => {
-  const res = runChunkCount({ input: "a\r\n" });
-  assertStrictSuccessCount(res, 2);
+test("FR-013: CHUNK_WIDTH=0 rejected", () => {
+  const res = runChunkCount({
+    env: { CHUNK_WIDTH: "0" },
+    input: "a",
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(/invalid chunk_width/i.test(stderrText(res)), stderrText(res));
 });
 
 test("CLI: --help with extra arguments is rejected with a clear message", () => {
@@ -167,3 +215,251 @@ test("CLI: -h with extra arguments is rejected with a clear message", () => {
   assert.notEqual(res.status, 0);
   assert.ok(/additional arguments/u.test(stderrText(res)), stderrText(res));
 });
+
+test("AC-005: --help documents chunk function C and stdin modes", () => {
+  const res = runChunkCount({ args: ["--help"], input: "" });
+  assert.ifError(res.error);
+  assert.equal(res.status, 0);
+  const out = stdoutText(res);
+  assert.match(out, /Chunk function \*\*C\*\*/u);
+  assert.match(out, /scalar/u);
+  assert.match(out, /--paths/u);
+  assert.match(out, /Mode B/u);
+});
+
+test("FR-009 Mode A AC-002: sum chunk counts across files", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-a-"));
+  const p1 = path.join(dir, "one.txt");
+  const p2 = path.join(dir, "two.txt");
+  writeFileSync(p1, "hello");
+  writeFileSync(p2, "x");
+  const stdin = `${p1}\n${p2}\n`;
+  const expected = segmentCount("hello") + segmentCount("x");
+  assertStrictSuccessCount(
+    runChunkCount({ input: stdin, args: ["--paths"], cwd: dir }),
+    expected,
+  );
+});
+
+test("FR-003 / AC-004 Mode A: blank lines skipped → 0 when no paths", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-blank-"));
+  const res = runChunkCount({
+    input: "\n\n\n",
+    args: ["--paths"],
+    cwd: dir,
+  });
+  assertStrictSuccessCount(res, 0);
+});
+
+test("FR-004 Mode A: relative paths from cwd", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-rel-"));
+  writeFileSync(path.join(dir, "f.txt"), "abc");
+  assertStrictSuccessCount(
+    runChunkCount({ input: "f.txt\n", args: ["--paths"], cwd: dir }),
+    segmentCount("abc"),
+  );
+});
+
+test("FR-004 Mode A: --base-dir resolves relative path lines", () => {
+  const base = mkdtempSync(path.join(tmpdir(), "chunk-count-base-"));
+  const sub = path.join(base, "d");
+  mkdirSync(sub);
+  writeFileSync(path.join(sub, "inner.txt"), "yy");
+  const res = runChunkCount({
+    cwd: tmpdir(),
+    args: ["--paths", "--base-dir", sub],
+    input: "inner.txt\n",
+  });
+  assertStrictSuccessCount(res, segmentCount("yy"));
+});
+
+test("AC-003 Mode A: missing file path fails run", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-miss-"));
+  const res = runChunkCount({
+    input: "does-not-exist.txt\n",
+    args: ["--paths"],
+    cwd: dir,
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(stderrText(res).length > 0);
+  assert.ok(!/^[0-9]+\n$/u.test(stdoutText(res)));
+});
+
+test("AC-003 Mode A: directory path fails run", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-dir-"));
+  const subdir = path.join(dir, "emptydir");
+  mkdirSync(subdir);
+  const res = runChunkCount({
+    input: `${subdir}\n`,
+    args: ["--paths"],
+    cwd: dir,
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(/directory/u.test(stderrText(res)), stderrText(res));
+});
+
+test("Mode A: CRLF path line — trailing \\r stripped per FR-003", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-crlf-"));
+  const f = path.join(dir, "g.txt");
+  writeFileSync(f, "z");
+  const line = `${f}\r`;
+  const res = runChunkCount({
+    input: `${line}\n`,
+    args: ["--paths"],
+    cwd: dir,
+  });
+  assertStrictSuccessCount(res, segmentCount("z"));
+});
+
+test("Mode A: duplicate paths count twice (documented)", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-dup-"));
+  const f = path.join(dir, "t.txt");
+  writeFileSync(f, "ab");
+  const stdin = `${f}\n${f}\n`;
+  assertStrictSuccessCount(
+    runChunkCount({ input: stdin, args: ["--paths"], cwd: dir }),
+    2 * segmentCount("ab"),
+  );
+});
+
+test("FR-010 Mode A: invalid UTF-8 on stdin path list fails", () => {
+  const res = runChunkCount({
+    input: Buffer.from([0xff, 0x0a]),
+    args: ["--paths"],
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(/utf-8|invalid/i.test(stderrText(res)), stderrText(res));
+});
+
+test("FR-010 Mode A: invalid UTF-8 file contents fail", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-badutf-"));
+  const f = path.join(dir, "bad.txt");
+  writeFileSync(f, Buffer.from([0xff]));
+  const res = runChunkCount({
+    input: `${f}\n`,
+    args: ["--paths"],
+    cwd: dir,
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(/utf-8/i.test(stderrText(res)), stderrText(res));
+  assert.ok(!/^[0-9]+\n$/u.test(stdoutText(res)));
+});
+
+test("FR-011: --base-dir without --paths rejected", () => {
+  const res = runChunkCount({
+    args: ["--base-dir", "/tmp"],
+    input: "a",
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(/requires --paths/u.test(stderrText(res)), stderrText(res));
+});
+
+test("MAX_INPUT_BYTES fractional env value is rejected", () => {
+  const res = runChunkCount({
+    env: { MAX_INPUT_BYTES: "10.9" },
+    input: "",
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(/invalid max_input_bytes/i.test(stderrText(res)), stderrText(res));
+});
+
+test("SEC-002 Mode A: file larger than MAX_INPUT_BYTES fails", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-big-"));
+  const f = path.join(dir, "big.txt");
+  writeFileSync(f, "x".repeat(20));
+  const res = runChunkCount({
+    env: { MAX_INPUT_BYTES: "10" },
+    input: `${f}\n`,
+    args: ["--paths"],
+    cwd: dir,
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(/exceeds.*byte limit|max_input_bytes/i.test(stderrText(res)), stderrText(res));
+  assert.ok(!/^[0-9]+\n$/u.test(stdoutText(res)));
+});
+
+test("Mode A: --base-dir must be a directory, not a file", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-bdf-"));
+  const file = path.join(dir, "not-a-dir");
+  writeFileSync(file, "x");
+  const res = runChunkCount({
+    args: ["--paths", "--base-dir", file],
+    input: "x\n",
+    cwd: dir,
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(/not a directory|base-dir/i.test(stderrText(res)), stderrText(res));
+});
+
+test("SEC / Mode A: path lines must not escape --base-dir (..)", () => {
+  const base = mkdtempSync(path.join(tmpdir(), "chunk-count-jail-"));
+  const sub = path.join(base, "d");
+  mkdirSync(sub);
+  writeFileSync(path.join(base, "outside.txt"), "yy");
+  const res = runChunkCount({
+    cwd: tmpdir(),
+    args: ["--paths", "--base-dir", sub],
+    input: "../outside.txt\n",
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(/escapes --base-dir/i.test(stderrText(res)), stderrText(res));
+});
+
+test("Mode A with --base-dir: absolute path lines are rejected", () => {
+  const base = mkdtempSync(path.join(tmpdir(), "chunk-count-abs-"));
+  const f = path.join(base, "f.txt");
+  writeFileSync(f, "a");
+  const res = runChunkCount({
+    args: ["--paths", "--base-dir", base],
+    input: `${f}\n`,
+    cwd: tmpdir(),
+  });
+  assert.notEqual(res.status, 0);
+  assert.ok(/absolute path.*--base-dir|--base-dir.*absolute/i.test(stderrText(res)), stderrText(res));
+});
+
+test(
+  "Mode A with --base-dir: symlink target outside base is rejected",
+  { skip: process.platform === "win32" },
+  () => {
+    const base = mkdtempSync(path.join(tmpdir(), "chunk-count-symout-"));
+    const outside = path.join(tmpdir(), `chunk-out-${Date.now()}.txt`);
+    writeFileSync(outside, "zz");
+    symlinkSync(outside, path.join(base, "out"));
+
+    const res = runChunkCount({
+      args: ["--paths", "--base-dir", base],
+      input: "out\n",
+      cwd: tmpdir(),
+    });
+    assert.notEqual(res.status, 0);
+    assert.ok(/escapes --base-dir/i.test(stderrText(res)), stderrText(res));
+  },
+);
+
+test(
+  "FR-011 Mode A: permission denied on file (EACCES)",
+  { skip: process.platform === "win32" },
+  () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "chunk-count-eacces-"));
+    const f = path.join(dir, "secret.txt");
+    writeFileSync(f, "no");
+    chmodSync(f, 0o000);
+    try {
+      const res = runChunkCount({
+        input: `${f}\n`,
+        args: ["--paths"],
+        cwd: dir,
+      });
+      assert.notEqual(res.status, 0);
+      assert.ok(stderrText(res).length > 0);
+      assert.ok(!/^[0-9]+\n$/u.test(stdoutText(res)));
+    } finally {
+      try {
+        chmodSync(f, 0o644);
+      } catch {
+        // ignore
+      }
+    }
+  },
+);
